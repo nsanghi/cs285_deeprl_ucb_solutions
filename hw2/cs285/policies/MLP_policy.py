@@ -86,7 +86,22 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        # TODO: get this from HW1
+        # TO DO: get this from HW1
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]
+
+        if self.discrete:
+            logits = self.logits_na(ptu.from_numpy(observation))
+            dist = distributions.Categorical(logits=logits)
+            action = ptu.to_numpy(dist.sample())
+        else:
+            mean = self.mean_net(ptu.from_numpy(observation))
+            dist = distributions.Normal(loc=mean, scale=self.logstd.exp())
+            action = ptu.to_numpy(dist.rsample())
+
+        return action
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -127,7 +142,7 @@ class MLPPolicyPG(MLPPolicy):
         actions = ptu.from_numpy(actions)
         advantages = ptu.from_numpy(advantages)
 
-        # TODO: update the policy using policy gradient
+        # TO DO: update the policy using policy gradient
         # HINT1: Recall that the expression that we want to MAXIMIZE
             # is the expectation over collected trajectories of:
             # sum_{t=0}^{T-1} [grad [log pi(a_t|s_t) * (Q_t - b_t)]]
@@ -135,12 +150,19 @@ class MLPPolicyPG(MLPPolicy):
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
         # HINT4: use self.optimizer to optimize the loss. Remember to
-            # 'zero_grad' first
+        # 'zero_grad' first
 
-        TODO
+        self.optimizer.zero_grad()
+        action_distribution = self.forward(observations)
+        log_prob_actions = action_distribution.log_prob(actions)
+        loss = (-log_prob_actions * advantages).mean()
+        loss.backward()
+        self.optimizer.step()
+
+        #TO DO
 
         if self.nn_baseline:
-            ## TODO: update the neural network baseline using the q_values as
+            ## TO DO: update the neural network baseline using the q_values as
             ## targets. The q_values should first be normalized to have a mean
             ## of zero and a standard deviation of one.
 
@@ -149,7 +171,12 @@ class MLPPolicyPG(MLPPolicy):
             ## HINT2: You will need to convert the targets into a tensor using
                 ## ptu.from_numpy before using it in the loss
 
-            TODO
+            #TO DO
+            self.baseline_optimizer.zero_grad()
+            values = self.baseline(observations)
+            loss_mse = self.baseline_loss(values, q_values)
+            loss_mse.backward()
+            self.baseline_optimizer.step()
 
         train_log = {
             'Training Loss': ptu.to_numpy(loss),

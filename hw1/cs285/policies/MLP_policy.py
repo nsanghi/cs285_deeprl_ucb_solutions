@@ -81,7 +81,18 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        # raise NotImplementedError
+
+        if self.discrete:
+            logits = self.logits_na(ptu.from_numpy(observation))
+            dist = distributions.Categorical(logits=logits)
+            action = ptu.to_numpy(dist.sample())
+        else:
+            mean = self.mean_net(ptu.from_numpy(observation))
+            dist = distributions.Normal(loc=mean, scale=self.logstd.exp())
+            action = ptu.to_numpy(dist.rsample())
+
+        return action
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -109,7 +120,23 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = TODO
+        # loss = TODO
+        observations = ptu.from_numpy(observations)
+        gt_actions = ptu.from_numpy(actions)
+        if self.discrete:
+            logits = self.logits_na(observations)
+            dist = distributions.Categorical(logits=logits)
+            predicted_actions = dist.sample()
+        else:
+            mean = self.mean_net(observations)
+            dist = distributions.Normal(loc=mean, scale=self.logstd.exp())
+            predicted_actions = dist.rsample()
+
+        loss = self.loss(predicted_actions, gt_actions)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
