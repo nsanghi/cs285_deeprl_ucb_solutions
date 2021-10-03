@@ -172,6 +172,7 @@ class MLPPolicyPG(MLPPolicy):
                 ## ptu.from_numpy before using it in the loss
 
             #TO DO
+            q_values = ptu.from_numpy(q_values)
             self.baseline_optimizer.zero_grad()
             values = self.baseline(observations)
             loss_mse = self.baseline_loss(values, q_values)
