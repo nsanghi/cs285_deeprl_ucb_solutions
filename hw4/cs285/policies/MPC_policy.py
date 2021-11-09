@@ -59,9 +59,9 @@ class MPCPolicy(BasePolicy):
             # TODO(Q5): Implement action selection using CEM.
             # Begin with randomly selected actions, then refine the sampling distribution
             # iteratively as described in Section 3.3, "Iterative Random-Shooting with Refinement" of
-            # https://arxiv.org/pdf/1909.11652.pdf 
+            # https://arxiv.org/pdf/1909.11652.pdf
             for i in range(self.cem_iterations):
-                # - Sample candidate sequences from a Gaussian with the current 
+                # - Sample candidate sequences from a Gaussian with the current
                 #   elite mean and variance
                 #     (Hint: remember that for the first iteration, we instead sample
                 #      uniformly at random just like we do for random-shooting)
@@ -86,7 +86,8 @@ class MPCPolicy(BasePolicy):
                 mean = self.cem_alpha * elite_mean + (1 - self.cem_alpha) * mean
                 var = self.cem_alpha * elite_var + (1 - self.cem_alpha) * var
 
-            # TODO(Q5): Set `cem_action` to the appropriate action chosen by CEM
+            # TODO(Q5): Set `cem_action` to the appropriate action sequence chosen by CEM.
+            # The shape should be (horizon, self.ac_dim)
             # cem_action = None
             cem_action = np.random.multivariate_normal(mean, var, 1)
             cem_action = np.clip(cem_action, self.low, self.high)
@@ -115,7 +116,7 @@ class MPCPolicy(BasePolicy):
 
         # sample random actions (N x horizon)
         candidate_action_sequences = self.sample_action_sequences(
-            num_sequences=self.N, horizon=self.horizon)
+            num_sequences=self.N, horizon=self.horizon, obs=obs)
 
         if candidate_action_sequences.shape[0] == 1:
             # CEM: only a single action sequence to consider; return the first action
@@ -148,7 +149,7 @@ class MPCPolicy(BasePolicy):
         # states for each dynamics model in your ensemble.
         # Once you have a sequence of predicted states from each model in
         # your ensemble, calculate the sum of rewards for each sequence
-        # using `self.env.get_reward(predicted_obs)`
+        # using `self.env.get_reward(predicted_obs, action)` at each step.
         # You should sum across `self.horizon` time step.
         # Hint: you should use model.get_prediction and you shouldn't need
         #       to import pytorch in this file.
